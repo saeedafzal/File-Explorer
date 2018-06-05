@@ -18,11 +18,17 @@ import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 public class Window extends JFrame {
 
     private static final Logger LOG = LoggerFactory.getLogger(Window.class);
 
+    private String currentPath;
     private final DisplayModel model = new DisplayModel();
 
     public Window() {
@@ -71,6 +77,7 @@ public class Window extends JFrame {
         final BasicArrowButton rightButton = new BasicArrowButton(BasicArrowButton.EAST);
 
         LOG.info("{}", System.getProperty("user.home"));
+        currentPath = System.getProperty("user.home");
         final JTextField directoryField = new JTextField(58);
         directoryField.setText(System.getProperty("user.home"));
 
@@ -106,9 +113,21 @@ public class Window extends JFrame {
         mainPanel.setLayout(new BorderLayout());
 
         final JTable table = new JTable(model);
+        getDefaultFiles();
 
         mainPanel.add(new JScrollPane(table));
 
         return mainPanel;
+    }
+
+    private void getDefaultFiles() {
+        try {
+            Files.list(Paths.get(currentPath)).forEach(path -> {
+                LOG.info("{}", path.toFile().getName());
+                model.addRow(path.toFile());
+            });
+        } catch (IOException io) {
+            LOG.error("Could not read files!", io);
+        }
     }
 }
