@@ -12,7 +12,7 @@ public class DisplayModel extends AbstractTableModel {
 
     void addRow(File file) {
         fileList.add(file);
-        fireTableRowsInserted(fileList.size()-1, fileList.size()-1);
+        fireTableRowsInserted(fileList.size() - 1, fileList.size() - 1);
     }
 
     @Override
