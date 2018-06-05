@@ -14,8 +14,11 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.io.IOException;
@@ -27,7 +30,10 @@ public class Window extends JFrame {
     private static final Logger LOG = LoggerFactory.getLogger(Window.class);
 
     private String currentPath;
+    private JTree tree;
+    private JTextField directoryField;
     private final DisplayModel model = new DisplayModel();
+    private final TreeListener listener = new TreeListener();
 
     public Window() {
         setTitle("File Explorer");
@@ -76,7 +82,7 @@ public class Window extends JFrame {
 
         LOG.info("{}", System.getProperty("user.home"));
         currentPath = System.getProperty("user.home");
-        final JTextField directoryField = new JTextField(58);
+        directoryField = new JTextField(58);
         directoryField.setText(System.getProperty("user.home"));
 
         final JButton btnGo = new JButton("Go");
@@ -100,7 +106,9 @@ public class Window extends JFrame {
         root.add(desktopNode);
         root.add(documentNode);
 
-        final JTree tree = new JTree(root);
+        tree = new JTree(root);
+        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        tree.addTreeSelectionListener(listener);
         quickAccessPanel.add(tree);
 
         return quickAccessPanel;
@@ -126,6 +134,32 @@ public class Window extends JFrame {
             });
         } catch (IOException io) {
             LOG.error("Could not read files!", io);
+        }
+    }
+
+    //listener class
+    class TreeListener implements TreeSelectionListener {
+
+        @Override
+        public void valueChanged(TreeSelectionEvent e) {
+            LOG.info("Tree: {}", tree.getLastSelectedPathComponent());
+            final String node = tree.getLastSelectedPathComponent().toString();
+            LOG.info("{}", node);
+
+            switch(node) {
+                case "Desktop":
+                    currentPath = System.getProperty("user.home") + "\\Desktop";
+                    model.clearRow();
+                    directoryField.setText(currentPath);
+                    getDefaultFiles();
+                    break;
+                case "Documents":
+                    currentPath = System.getProperty("user.home") + "\\Documents";
+                    model.clearRow();
+                    directoryField.setText(currentPath);
+                    getDefaultFiles();
+                    break;
+            }
         }
     }
 }

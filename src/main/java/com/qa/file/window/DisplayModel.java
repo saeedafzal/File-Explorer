@@ -2,7 +2,9 @@ package com.qa.file.window;
 
 import javax.swing.table.AbstractTableModel;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class DisplayModel extends AbstractTableModel {
@@ -13,6 +15,11 @@ public class DisplayModel extends AbstractTableModel {
     void addRow(File file) {
         fileList.add(file);
         fireTableRowsInserted(fileList.size() - 1, fileList.size() - 1);
+    }
+
+    void clearRow() {
+        fileList.clear();
+        fireTableRowsDeleted(fileList.size() - 1, fileList.size() - 1);
     }
 
     @Override
@@ -32,18 +39,18 @@ public class DisplayModel extends AbstractTableModel {
 
     @Override
     public Object getValueAt(int row, int col) {
-
         final File file = fileList.get(row);
 
         switch (col) {
             case 0:
                 return file.getName();
             case 1:
-                return file.lastModified();
+                return new SimpleDateFormat("dd-MM-yyyy h:mm a").format(new Date(file.lastModified()));
             case 2:
                 return file.getName().replaceAll(".*\\.", "");
             case 3:
-                return file.length() / 2048;
+                if (file.length() / 1024 == 0) return "";
+                else return file.length() / 1024 + " KB"; //kilobytes
             default:
                 return null;
         }
