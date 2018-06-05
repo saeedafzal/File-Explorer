@@ -21,6 +21,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -31,6 +33,7 @@ public class Window extends JFrame {
 
     private static final Logger LOG = LoggerFactory.getLogger(Window.class);
 
+    private String nextPath;
     private String currentPath;
     private String previousPath;
     private JTree tree;
@@ -39,6 +42,7 @@ public class Window extends JFrame {
     private final DisplayModel model = new DisplayModel();
     private final TreeListener listener = new TreeListener();
     private final DirListener dirListener = new DirListener();
+    private final DirButtons buttons = new DirButtons();
 
     public Window() {
         setTitle("File Explorer");
@@ -82,8 +86,11 @@ public class Window extends JFrame {
 
     private JPanel createTopPanel() {
         final JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
         final BasicArrowButton leftButton = new BasicArrowButton(BasicArrowButton.WEST);
+        leftButton.setActionCommand("BACK");
         final BasicArrowButton rightButton = new BasicArrowButton(BasicArrowButton.EAST);
+        rightButton.setActionCommand("FORWARD");
 
         LOG.info("{}", System.getProperty("user.home"));
         currentPath = System.getProperty("user.home");
@@ -91,7 +98,9 @@ public class Window extends JFrame {
         directoryField.setText(System.getProperty("user.home"));
 
         final JButton btnGo = new JButton("Go");
+        btnGo.setActionCommand("GO");
         final BasicArrowButton upButton = new BasicArrowButton(BasicArrowButton.NORTH);
+        upButton.setActionCommand("UP");
 
         topPanel.add(leftButton);
         topPanel.add(rightButton);
@@ -134,10 +143,12 @@ public class Window extends JFrame {
 
     private void getDefaultFiles() {
         try {
-            Files.list(Paths.get(currentPath)).forEach(path -> {
-                LOG.info("{}", path.toFile().getName());
-                model.addRow(path.toFile());
-            });
+            Files.list(Paths.get(currentPath))
+                    .filter(path -> !path.toFile().isHidden())
+                    .forEach(path -> {
+                        LOG.info("{}", path.toFile().getName());
+                        model.addRow(path.toFile());
+                    });
         } catch (IOException io) {
             LOG.error("Could not read files!", io);
         }
@@ -154,12 +165,14 @@ public class Window extends JFrame {
 
             switch (node) {
                 case "Desktop":
+                    previousPath = currentPath;
                     currentPath = System.getProperty("user.home") + "\\Desktop";
                     model.clearRow();
                     directoryField.setText(currentPath);
                     getDefaultFiles();
                     break;
                 case "Documents":
+                    previousPath = currentPath;
                     currentPath = System.getProperty("user.home") + "\\Documents";
                     model.clearRow();
                     directoryField.setText(currentPath);
@@ -175,7 +188,6 @@ public class Window extends JFrame {
             if (e.getButton() == MouseEvent.BUTTON1) {
                 if (e.getClickCount() == 2) {
                     LOG.info("Clicked dir");
-                    final int row = table.getRowCount();
                     LOG.info("{} || {}", table.rowAtPoint(e.getPoint()));
                     currentPath += "\\" + table.getValueAt(table.rowAtPoint(e.getPoint()), 0);
                     model.clearRow();
@@ -183,6 +195,14 @@ public class Window extends JFrame {
                     getDefaultFiles();
                 }
             }
+        }
+    }
+
+    class DirButtons implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            nextPath = currentPath;
+
         }
     }
 }
