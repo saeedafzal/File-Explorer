@@ -21,6 +21,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -30,10 +32,13 @@ public class Window extends JFrame {
     private static final Logger LOG = LoggerFactory.getLogger(Window.class);
 
     private String currentPath;
+    private String previousPath;
     private JTree tree;
     private JTextField directoryField;
+    private JTable table;
     private final DisplayModel model = new DisplayModel();
     private final TreeListener listener = new TreeListener();
+    private final DirListener dirListener = new DirListener();
 
     public Window() {
         setTitle("File Explorer");
@@ -118,7 +123,8 @@ public class Window extends JFrame {
         final JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
 
-        final JTable table = new JTable(model);
+        table = new JTable(model);
+        table.addMouseListener(dirListener);
         getDefaultFiles();
 
         mainPanel.add(new JScrollPane(table));
@@ -146,7 +152,7 @@ public class Window extends JFrame {
             final String node = tree.getLastSelectedPathComponent().toString();
             LOG.info("{}", node);
 
-            switch(node) {
+            switch (node) {
                 case "Desktop":
                     currentPath = System.getProperty("user.home") + "\\Desktop";
                     model.clearRow();
@@ -159,6 +165,23 @@ public class Window extends JFrame {
                     directoryField.setText(currentPath);
                     getDefaultFiles();
                     break;
+            }
+        }
+    }
+
+    class DirListener extends MouseAdapter {
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            if (e.getButton() == MouseEvent.BUTTON1) {
+                if (e.getClickCount() == 2) {
+                    LOG.info("Clicked dir");
+                    final int row = table.getRowCount();
+                    LOG.info("{} || {}", table.rowAtPoint(e.getPoint()));
+                    currentPath += "\\" + table.getValueAt(table.rowAtPoint(e.getPoint()), 0);
+                    model.clearRow();
+                    directoryField.setText(currentPath);
+                    getDefaultFiles();
+                }
             }
         }
     }
