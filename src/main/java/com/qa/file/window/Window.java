@@ -24,6 +24,7 @@ import javax.swing.tree.TreeSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.FlowLayout;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -35,7 +36,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 public class Window extends JFrame {
 
@@ -49,6 +52,7 @@ public class Window extends JFrame {
     private JTable table;
     private JPopupMenu popup;
     private File file;
+    private List<File> listOfFiles = new ArrayList<>();
     private final DisplayModel model = new DisplayModel();
     private final TreeListener listener = new TreeListener();
     private final DirListener dirListener = new DirListener();
@@ -354,6 +358,10 @@ public class Window extends JFrame {
                     }
                     break;
                 case "COPY":
+                    listOfFiles.clear();
+                    listOfFiles.add(file);
+                    final FileTransferable ft = new FileTransferable(listOfFiles);
+                    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(ft, (clipboard, transferable) -> LOG.debug("Clipboard: {}, Transferable: {}", clipboard, transferable));
                     break;
             }
         }
