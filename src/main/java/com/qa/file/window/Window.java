@@ -8,7 +8,9 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -45,10 +47,13 @@ public class Window extends JFrame {
     private JTree tree;
     private JTextField directoryField;
     private JTable table;
+    private JPopupMenu popup;
+    private File file;
     private final DisplayModel model = new DisplayModel();
     private final TreeListener listener = new TreeListener();
     private final DirListener dirListener = new DirListener();
     private final DirButtons buttons = new DirButtons();
+    private final MenuButtons menuButtons = new MenuButtons();
 
     public Window() {
         setTitle("File Explorer");
@@ -70,6 +75,8 @@ public class Window extends JFrame {
 
         contentPane.add(container);
         setContentPane(contentPane);
+
+        createPopup();
     }
 
     private JMenuBar createMenuBar() {
@@ -168,6 +175,33 @@ public class Window extends JFrame {
         return mainPanel;
     }
 
+    private void createPopup() {
+        popup = new JPopupMenu();
+        final JMenuItem open = new JMenuItem("Open");
+        open.setActionCommand("OPEN");
+        open.addActionListener(menuButtons);
+        final JMenuItem copy = new JMenuItem("Copy");
+        copy.setActionCommand("COPY");
+        copy.addActionListener(menuButtons);
+        final JMenuItem cut = new JMenuItem("Cut");
+        cut.setActionCommand("CUT");
+        cut.addActionListener(menuButtons);
+        final JMenuItem paste = new JMenuItem("Paste");
+        paste.setActionCommand("PASTE");
+        paste.addActionListener(menuButtons);
+        final JMenuItem delete = new JMenuItem("Delete");
+        delete.setActionCommand("DELETE");
+        delete.addActionListener(menuButtons);
+
+        popup.add(open);
+        popup.addSeparator();
+        popup.add(copy);
+        popup.add(cut);
+        popup.add(paste);
+        popup.addSeparator();
+        popup.add(delete);
+    }
+
     private void getDefaultFiles() {
         try {
             Files.list(Paths.get(currentPath))
@@ -185,6 +219,17 @@ public class Window extends JFrame {
         model.clearRow();
         directoryField.setText(currentPath);
         getDefaultFiles();
+    }
+
+    private void openFile(File file) {
+        try {
+            if (file.exists()) {
+                Desktop desktop = Desktop.getDesktop();
+                desktop.open(file);
+            }
+        } catch (IOException io) {
+            LOG.error("Could not open file!", io);
+        }
     }
 
     //listener class
@@ -217,12 +262,31 @@ public class Window extends JFrame {
 
     class DirListener extends MouseAdapter {
         @Override
+        public void mousePressed(MouseEvent e) {
+            maybeShowPopup(e);
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            maybeShowPopup(e);
+        }
+
+        private void maybeShowPopup(MouseEvent e) {
+            if (e.isPopupTrigger()) {
+                final int row = table.rowAtPoint(e.getPoint());
+                final int col = table.columnAtPoint(e.getPoint());
+                if (!table.isRowSelected(row)) table.changeSelection(row, col, false, false);
+                popup.show(e.getComponent(), e.getX(), e.getY());
+            }
+        }
+
+        @Override
         public void mouseClicked(MouseEvent e) {
+            model.getValueAt(table.rowAtPoint(e.getPoint()), 0);
+            file = model.getFile();
+            LOG.info(file.getName());
             if (e.getButton() == MouseEvent.BUTTON1) {
                 if (e.getClickCount() == 2) {
-                    model.getValueAt(table.rowAtPoint(e.getPoint()), 0);
-                    File file = model.getFile();
-                    LOG.info(file.getName());
                     if (file.isDirectory()) {
                         backList.push(currentPath);
                         LOG.info("Clicked dir");
@@ -232,14 +296,7 @@ public class Window extends JFrame {
                         directoryField.setText(currentPath);
                         getDefaultFiles();
                     } else {
-                        try {
-                            if (file.exists()) {
-                                Desktop desktop = Desktop.getDesktop();
-                                desktop.open(file);
-                            }
-                        } catch (IOException io) {
-                            LOG.error("Could not open file!", io);
-                        }
+                        openFile(file);
                     }
                 }
             }
@@ -282,7 +339,23 @@ public class Window extends JFrame {
                     lf(directoryField.getText());
                     break;
             }
+        }
+    }
 
+    class MenuButtons implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            LOG.debug(e.getActionCommand());
+            switch (e.getActionCommand()) {
+                case "OPEN":
+                    if (!file.isDirectory()) {
+                        LOG.info(file.getName());
+                        openFile(file);
+                    }
+                    break;
+                case "COPY":
+                    break;
+            }
         }
     }
 }
