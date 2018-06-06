@@ -13,12 +13,12 @@ public class DisplayModel extends AbstractTableModel {
     private List<File> fileList = new ArrayList<>();
     private File file;
 
-    void addRow(File file) {
+    public void addRow(File file) {
         fileList.add(file);
         fireTableRowsInserted(fileList.size() - 1, fileList.size() - 1);
     }
 
-    void clearRow() {
+    public void clearRow() {
         fileList.clear();
         fireTableRowsDeleted(fileList.size() - 1, fileList.size() - 1);
     }
@@ -59,5 +59,9 @@ public class DisplayModel extends AbstractTableModel {
 
     File getFile() {
         return file;
+    }
+
+    public List<File> getFileList() {
+        return fileList;
     }
 }
