@@ -20,6 +20,7 @@ import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,6 +28,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +39,6 @@ public class Window extends JFrame {
 
     private static final Logger LOG = LoggerFactory.getLogger(Window.class);
 
-    private String nextPath;
     private String currentPath;
     private LinkedList<String> backList = new LinkedList<>();
     private LinkedList<String> frontList = new LinkedList<>();
@@ -219,13 +220,27 @@ public class Window extends JFrame {
         public void mouseClicked(MouseEvent e) {
             if (e.getButton() == MouseEvent.BUTTON1) {
                 if (e.getClickCount() == 2) {
-                    backList.push(currentPath);
-                    LOG.info("Clicked dir");
-                    LOG.info("{} || {}", table.rowAtPoint(e.getPoint()));
-                    currentPath += "\\" + table.getValueAt(table.rowAtPoint(e.getPoint()), 0);
-                    model.clearRow();
-                    directoryField.setText(currentPath);
-                    getDefaultFiles();
+                    model.getValueAt(table.rowAtPoint(e.getPoint()), 0);
+                    File file = model.getFile();
+                    LOG.info(file.getName());
+                    if (file.isDirectory()) {
+                        backList.push(currentPath);
+                        LOG.info("Clicked dir");
+                        LOG.info("{} || {}", table.rowAtPoint(e.getPoint()));
+                        currentPath += "\\" + table.getValueAt(table.rowAtPoint(e.getPoint()), 0);
+                        model.clearRow();
+                        directoryField.setText(currentPath);
+                        getDefaultFiles();
+                    } else {
+                        try {
+                            if (file.exists()) {
+                                Desktop desktop = Desktop.getDesktop();
+                                desktop.open(file);
+                            }
+                        } catch (IOException io) {
+                            LOG.error("Could not open file!", io);
+                        }
+                    }
                 }
             }
         }

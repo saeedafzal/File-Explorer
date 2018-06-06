@@ -11,6 +11,7 @@ public class DisplayModel extends AbstractTableModel {
 
     private String columnNames[] = {"Name", "Date Modified", "Type", "Size"};
     private List<File> fileList = new ArrayList<>();
+    private File file;
 
     void addRow(File file) {
         fileList.add(file);
@@ -39,7 +40,7 @@ public class DisplayModel extends AbstractTableModel {
 
     @Override
     public Object getValueAt(int row, int col) {
-        final File file = fileList.get(row);
+        file = fileList.get(row);
 
         switch (col) {
             case 0:
@@ -54,5 +55,9 @@ public class DisplayModel extends AbstractTableModel {
             default:
                 return null;
         }
+    }
+
+    File getFile() {
+        return file;
     }
 }
