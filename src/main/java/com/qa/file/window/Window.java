@@ -23,6 +23,8 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -101,6 +103,23 @@ public class Window extends JFrame {
         currentPath = System.getProperty("user.home");
         directoryField = new JTextField(58);
         directoryField.setText(System.getProperty("user.home"));
+        directoryField.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent keyEvent) {
+            }
+
+            @Override
+            public void keyPressed(KeyEvent keyEvent) {
+                LOG.info("code: {}", keyEvent.getKeyChar(), keyEvent.getKeyCode());
+                if (keyEvent.getKeyCode() == 10) {
+                    lf(directoryField.getText());
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent keyEvent) {
+            }
+        });
 
         final JButton btnGo = new JButton("Go");
         btnGo.setActionCommand("GO");
@@ -156,6 +175,15 @@ public class Window extends JFrame {
         } catch (IOException io) {
             LOG.error("Could not read files!", io);
         }
+    }
+
+    private void lf(String dir) {
+        backList.push(currentPath);
+        final Path path = Paths.get(dir);
+        currentPath = path.toString();
+        model.clearRow();
+        directoryField.setText(currentPath);
+        getDefaultFiles();
     }
 
     //listener class
@@ -233,14 +261,10 @@ public class Window extends JFrame {
                     }
                     break;
                 case "UP":
-                    backList.push(currentPath);
-                    final Path path = Paths.get(currentPath);
-                    currentPath = path.getParent().toString();
-                    model.clearRow();
-                    directoryField.setText(currentPath);
-                    getDefaultFiles();
+                    lf(currentPath);
                     break;
                 case "GO":
+                    lf(directoryField.getText());
                     break;
             }
 
