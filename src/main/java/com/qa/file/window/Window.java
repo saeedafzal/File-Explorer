@@ -3,7 +3,6 @@ package com.qa.file.window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -20,7 +19,6 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeSelectionModel;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.FlowLayout;
@@ -68,19 +66,23 @@ public class Window extends JFrame {
 
         final JPanel contentPane = new JPanel();
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-        contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
+        contentPane.setLayout(new BorderLayout(0, 0));
 
-        final JPanel container = new JPanel();
-        container.setLayout(new BorderLayout(0, 0));
-
-        container.add(createTopPanel(), BorderLayout.NORTH);
-        container.add(createQuickAccessPanel(), BorderLayout.WEST);
-        container.add(createMainPanel(), BorderLayout.CENTER);
-
-        contentPane.add(container);
-        setContentPane(contentPane);
-
-        createPopup();
+        contentPane.add(createTopPanel(), BorderLayout.NORTH);
+        contentPane.add(createQuickAccessPanel(), BorderLayout.WEST);
+//
+//        final JPanel container = new JPanel();
+//        container.setLayout(new BorderLayout(0, 0));
+//
+//        container.add(createTopPanel(), BorderLayout.NORTH);
+//        container.add(createQuickAccessPanel(), BorderLayout.WEST);
+//        container.add(createMainPanel(), BorderLayout.CENTER);
+//
+//        contentPane.add(container);
+//        setContentPane(contentPane);
+//
+//        createPopup();
+        add(contentPane);
     }
 
     private JMenuBar createMenuBar() {
@@ -150,9 +152,22 @@ public class Window extends JFrame {
     }
 
     private JPanel createQuickAccessPanel() {
-        final JPanel quickAccessPanel = new JPanel();
+        try {
+            final JPanel quickAccessPanel = new JPanel();
+            List<String> fileNames = new ArrayList<>();
+            Files.list(Paths.get(new File(System.getProperty("user.home")).getParentFile().getParentFile().getPath()))
+                    .filter(path -> !path.toFile().isHidden())
+                    .forEach(path -> fileNames.add(path.toFile().getName()));
 
-        final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
+            final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
+            return quickAccessPanel;
+        } catch (IOException io) {
+            LOG.error("Could not get files...", io, io.getMessage());
+        }
+
+        return null;
+
+        /*final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
         final DefaultMutableTreeNode desktopNode = new DefaultMutableTreeNode("Desktop");
         final DefaultMutableTreeNode documentNode = new DefaultMutableTreeNode("Documents");
         root.add(desktopNode);
@@ -161,9 +176,7 @@ public class Window extends JFrame {
         tree = new JTree(root);
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         tree.addTreeSelectionListener(listener);
-        quickAccessPanel.add(tree);
-
-        return quickAccessPanel;
+        quickAccessPanel.add(tree);*/
     }
 
     private JPanel createMainPanel() {
