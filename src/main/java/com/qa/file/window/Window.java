@@ -3,7 +3,6 @@ package com.qa.file.window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -13,6 +12,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
@@ -24,7 +24,6 @@ import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -76,16 +75,13 @@ public class Window extends JFrame {
 
         final JPanel contentPane = new JPanel();
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-        contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
+        contentPane.setLayout(new BorderLayout(0, 0));
 
-        final JPanel container = new JPanel();
-        container.setLayout(new BorderLayout(0, 0));
+        contentPane.add(createTopPanel(), BorderLayout.NORTH);
 
-        container.add(createTopPanel(), BorderLayout.NORTH);
-        container.add(createQuickAccessPanel(), BorderLayout.WEST);
-        container.add(createMainPanel(), BorderLayout.CENTER);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, new JScrollPane(createQuickAccessPanel()), createMainPanel());
 
-        contentPane.add(container);
+        contentPane.add(splitPane, BorderLayout.CENTER);
         setContentPane(contentPane);
 
         createPopup();
@@ -194,42 +190,9 @@ public class Window extends JFrame {
         Dimension widePreferred = new Dimension(200, (int) preferredSize.getHeight());
         treeScroll.setPreferredSize(widePreferred);
 
-        quickAccessPanel.add(tree);
+        quickAccessPanel.add(new JScrollPane(tree));
 
         return quickAccessPanel;
-        /*final JPanel quickAccessPanel = new JPanel();
-
-        final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
-        final DefaultMutableTreeNode desktopNode = new DefaultMutableTreeNode("Desktop");
-        final DefaultMutableTreeNode documentNode = new DefaultMutableTreeNode("Documents");
-        root.add(desktopNode);
-        root.add(documentNode);
-
-        tree = new JTree(root);
-        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        tree.addTreeSelectionListener(listener);
-        quickAccessPanel.add(tree);
-
-        return quickAccessPanel;*/
-    }
-
-    private void showRootFile() {
-        tree.setSelectionInterval(0, 0);
-    }
-
-    private TreePath findTreePath(File find) {
-        for (int ii = 0; ii < tree.getRowCount(); ii++) {
-            TreePath treePath = tree.getPathForRow(ii);
-            Object object = treePath.getLastPathComponent();
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) object;
-            File nodeFile = (File) node.getUserObject();
-
-            if (nodeFile == find) {
-                return treePath;
-            }
-        }
-        // not found!
-        return null;
     }
 
     private void showChildren(final DefaultMutableTreeNode node) {
