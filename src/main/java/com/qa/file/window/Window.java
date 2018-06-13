@@ -16,9 +16,10 @@ import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicArrowButton;
@@ -59,12 +60,11 @@ public class Window extends JFrame {
     private List<File> listOfFiles = new ArrayList<>();
     private final FileSystemView fileSystemView;
     private final DisplayModel model = new DisplayModel();
-    private final TreeListener listener = new TreeListener();
     private final DirListener dirListener = new DirListener();
     private final DirButtons buttons = new DirButtons();
     private final MenuButtons menuButtons = new MenuButtons();
 
-    public Window() {
+    private Window() {
         fileSystemView = FileSystemView.getFileSystemView();
 
         setTitle("File Explorer");
@@ -91,6 +91,7 @@ public class Window extends JFrame {
         final JMenuBar menuBar = new JMenuBar();
 
         JMenu mnFile = new JMenu("File");
+        fileMenu(mnFile);
         menuBar.add(mnFile);
 
         JMenu mnEdit = new JMenu("Edit");
@@ -103,6 +104,26 @@ public class Window extends JFrame {
         menuBar.add(mnHelp);
 
         return menuBar;
+    }
+
+    private void fileMenu(JMenu mnFile) {
+        final JMenuItem newWindow = new JMenuItem("New Window");
+        newWindow.addActionListener(actionEvent -> startProgram());
+        final JMenuItem openCmd = new JMenuItem("Open Command Prompt Here");
+        openCmd.addActionListener(actionEvent -> {
+            try {
+                Runtime.getRuntime().exec(new String[]{"cmd.exe", "/c", "start", "cd", currentPath});
+            } catch (IOException io) {
+                LOG.error("Failed to open CMD", io);
+            }
+        });
+        final JMenuItem close = new JMenuItem("Close");
+        close.addActionListener(actionEvent -> this.dispose());
+
+        mnFile.add(newWindow);
+        mnFile.add(openCmd);
+        mnFile.addSeparator();
+        mnFile.add(close);
     }
 
     private JPanel createTopPanel() {
@@ -305,34 +326,6 @@ public class Window extends JFrame {
         }
     }
 
-    //listener class
-    class TreeListener implements TreeSelectionListener {
-
-        @Override
-        public void valueChanged(TreeSelectionEvent e) {
-            LOG.info("Tree: {}", tree.getLastSelectedPathComponent());
-            final String node = tree.getLastSelectedPathComponent().toString();
-            LOG.info("{}", node);
-
-            switch (node) {
-                case "Desktop":
-                    backList.push(currentPath);
-                    currentPath = System.getProperty("user.home") + "\\Desktop";
-                    model.clearRow();
-                    directoryField.setText(currentPath);
-                    getDefaultFiles();
-                    break;
-                case "Documents":
-                    backList.push(currentPath);
-                    currentPath = System.getProperty("user.home") + "\\Documents";
-                    model.clearRow();
-                    directoryField.setText(currentPath);
-                    getDefaultFiles();
-                    break;
-            }
-        }
-    }
-
     class DirListener extends MouseAdapter {
         @Override
         public void mousePressed(MouseEvent e) {
@@ -433,6 +426,18 @@ public class Window extends JFrame {
                     Toolkit.getDefaultToolkit().getSystemClipboard().setContents(ft, (clipboard, transferable) -> LOG.debug("Clipboard: {}, Transferable: {}", clipboard, transferable));
                     break;
             }
+        }
+    }
+
+    public static void startProgram() {
+        try {
+            Window frame = new Window();
+            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+            SwingUtilities.updateComponentTreeUI(frame);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
