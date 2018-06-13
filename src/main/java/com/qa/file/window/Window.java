@@ -3,6 +3,7 @@ package com.qa.file.window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -10,17 +11,23 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
+import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -51,6 +58,7 @@ public class Window extends JFrame {
     private JPopupMenu popup;
     private File file;
     private List<File> listOfFiles = new ArrayList<>();
+    private final FileSystemView fileSystemView;
     private final DisplayModel model = new DisplayModel();
     private final TreeListener listener = new TreeListener();
     private final DirListener dirListener = new DirListener();
@@ -58,6 +66,8 @@ public class Window extends JFrame {
     private final MenuButtons menuButtons = new MenuButtons();
 
     public Window() {
+        fileSystemView = FileSystemView.getFileSystemView();
+
         setTitle("File Explorer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
@@ -66,23 +76,19 @@ public class Window extends JFrame {
 
         final JPanel contentPane = new JPanel();
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-        contentPane.setLayout(new BorderLayout(0, 0));
+        contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.X_AXIS));
 
-        contentPane.add(createTopPanel(), BorderLayout.NORTH);
-        contentPane.add(createQuickAccessPanel(), BorderLayout.WEST);
-//
-//        final JPanel container = new JPanel();
-//        container.setLayout(new BorderLayout(0, 0));
-//
-//        container.add(createTopPanel(), BorderLayout.NORTH);
-//        container.add(createQuickAccessPanel(), BorderLayout.WEST);
-//        container.add(createMainPanel(), BorderLayout.CENTER);
-//
-//        contentPane.add(container);
-//        setContentPane(contentPane);
-//
-//        createPopup();
-        add(contentPane);
+        final JPanel container = new JPanel();
+        container.setLayout(new BorderLayout(0, 0));
+
+        container.add(createTopPanel(), BorderLayout.NORTH);
+        container.add(createQuickAccessPanel(), BorderLayout.WEST);
+        container.add(createMainPanel(), BorderLayout.CENTER);
+
+        contentPane.add(container);
+        setContentPane(contentPane);
+
+        createPopup();
     }
 
     private JMenuBar createMenuBar() {
@@ -152,22 +158,48 @@ public class Window extends JFrame {
     }
 
     private JPanel createQuickAccessPanel() {
-        try {
-            final JPanel quickAccessPanel = new JPanel();
-            List<String> fileNames = new ArrayList<>();
-            Files.list(Paths.get(new File(System.getProperty("user.home")).getParentFile().getParentFile().getPath()))
-                    .filter(path -> !path.toFile().isHidden())
-                    .forEach(path -> fileNames.add(path.toFile().getName()));
+        final JPanel quickAccessPanel = new JPanel();
 
-            final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
-            return quickAccessPanel;
-        } catch (IOException io) {
-            LOG.error("Could not get files...", io, io.getMessage());
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode();
+        DefaultTreeModel treeModel = new DefaultTreeModel(root);
+
+        TreeSelectionListener treeSelectionListener = tse -> {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) tse.getPath().getLastPathComponent();
+            showChildren(node);
+        };
+
+        // show the file system roots.
+        File[] roots = fileSystemView.getRoots();
+        for (File fileSystemRoot : roots) {
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode(fileSystemRoot);
+            root.add(node);
+            File[] files = fileSystemView.getFiles(fileSystemRoot, true);
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    node.add(new DefaultMutableTreeNode(file));
+                }
+            }
         }
 
-        return null;
+        tree = new JTree(treeModel);
+        tree.setRootVisible(false);
+        tree.addTreeSelectionListener(treeSelectionListener);
+        tree.setCellRenderer(new FileTreeCellRenderer());
+        tree.expandRow(0);
+        JScrollPane treeScroll = new JScrollPane(tree);
 
-        /*final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
+        tree.setVisibleRowCount(15);
+
+        Dimension preferredSize = treeScroll.getPreferredSize();
+        Dimension widePreferred = new Dimension(200, (int) preferredSize.getHeight());
+        treeScroll.setPreferredSize(widePreferred);
+
+        quickAccessPanel.add(tree);
+
+        return quickAccessPanel;
+        /*final JPanel quickAccessPanel = new JPanel();
+
+        final DefaultMutableTreeNode root = new DefaultMutableTreeNode("Quick Access");
         final DefaultMutableTreeNode desktopNode = new DefaultMutableTreeNode("Desktop");
         final DefaultMutableTreeNode documentNode = new DefaultMutableTreeNode("Documents");
         root.add(desktopNode);
@@ -176,7 +208,68 @@ public class Window extends JFrame {
         tree = new JTree(root);
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         tree.addTreeSelectionListener(listener);
-        quickAccessPanel.add(tree);*/
+        quickAccessPanel.add(tree);
+
+        return quickAccessPanel;*/
+    }
+
+    private void showRootFile() {
+        tree.setSelectionInterval(0, 0);
+    }
+
+    private TreePath findTreePath(File find) {
+        for (int ii = 0; ii < tree.getRowCount(); ii++) {
+            TreePath treePath = tree.getPathForRow(ii);
+            Object object = treePath.getLastPathComponent();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) object;
+            File nodeFile = (File) node.getUserObject();
+
+            if (nodeFile == find) {
+                return treePath;
+            }
+        }
+        // not found!
+        return null;
+    }
+
+    private void showChildren(final DefaultMutableTreeNode node) {
+        JProgressBar progressBar = new JProgressBar();
+        tree.setEnabled(false);
+        progressBar.setVisible(true);
+        progressBar.setIndeterminate(true);
+
+        SwingWorker<Void, File> worker = new SwingWorker<Void, File>() {
+            @Override
+            public Void doInBackground() {
+                File file = (File) node.getUserObject();
+                if (file.isDirectory()) {
+                    File[] files = fileSystemView.getFiles(file, true); //!!
+                    if (node.isLeaf()) {
+                        for (File child : files) {
+                            if (child.isDirectory()) {
+                                publish(child);
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(List<File> chunks) {
+                for (File child : chunks) {
+                    node.add(new DefaultMutableTreeNode(child));
+                }
+            }
+
+            @Override
+            protected void done() {
+                progressBar.setIndeterminate(false);
+                progressBar.setVisible(false);
+                tree.setEnabled(true);
+            }
+        };
+        worker.execute();
     }
 
     private JPanel createMainPanel() {
